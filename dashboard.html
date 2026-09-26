@@ -1,0 +1,520 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <title>GeoTrace | Command Center</title>
+
+    <link
+        rel="stylesheet"
+        href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
+    >
+
+    <style>
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            background: #02050a;
+            color: #ffffff;
+            font-family: Arial, sans-serif;
+            overflow: hidden;
+        }
+
+        #map {
+            position: fixed;
+            inset: 0;
+            z-index: 1;
+        }
+
+        .topbar {
+            position: fixed;
+            top: 14px;
+            left: 14px;
+            right: 14px;
+            z-index: 1000;
+
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+
+            padding: 14px 16px;
+
+            background: rgba(2, 8, 15, 0.92);
+            border: 1px solid rgba(0, 200, 255, 0.4);
+            border-radius: 15px;
+
+            backdrop-filter: blur(14px);
+        }
+
+        .brand {
+            font-size: 18px;
+            font-weight: bold;
+            letter-spacing: 3px;
+        }
+
+        .brand span {
+            color: #00c8ff;
+        }
+
+        .status {
+            color: #00ff91;
+            font-size: 10px;
+            letter-spacing: 1px;
+        }
+
+        .status-dot {
+            display: inline-block;
+            width: 8px;
+            height: 8px;
+            margin-right: 5px;
+            border-radius: 50%;
+            background: #00ff91;
+            box-shadow: 0 0 12px #00ff91;
+            animation: pulse 1.5s infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% {
+                opacity: 1;
+                transform: scale(1);
+            }
+
+            50% {
+                opacity: 0.4;
+                transform: scale(0.65);
+            }
+        }
+
+        .panel {
+            position: fixed;
+            left: 14px;
+            right: 14px;
+            bottom: 14px;
+            z-index: 1000;
+
+            padding: 17px;
+
+            background: rgba(2, 8, 15, 0.94);
+            border: 1px solid rgba(0, 200, 255, 0.35);
+            border-radius: 19px;
+
+            backdrop-filter: blur(16px);
+
+            box-shadow:
+                0 0 35px rgba(0, 170, 255, 0.08);
+        }
+
+        .target-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+
+            margin-bottom: 14px;
+        }
+
+        .target {
+            font-size: 16px;
+            font-weight: bold;
+            letter-spacing: 1px;
+        }
+
+        .tracking {
+            color: #00ff91;
+            font-size: 10px;
+        }
+
+        .grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 9px;
+        }
+
+        .card {
+            padding: 12px;
+
+            background: rgba(13, 24, 38, 0.88);
+            border: 1px solid rgba(70, 110, 140, 0.35);
+            border-radius: 12px;
+        }
+
+        .label {
+            color: #71869b;
+            font-size: 9px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            margin-bottom: 5px;
+        }
+
+        .value {
+            font-size: 14px;
+            font-weight: bold;
+        }
+
+        .blue {
+            color: #00c8ff;
+        }
+
+        .green {
+            color: #00ff91;
+        }
+
+        .yellow {
+            color: #ffd43b;
+        }
+
+        .red {
+            color: #ff4264;
+        }
+
+        .footer {
+            margin-top: 12px;
+            text-align: center;
+            color: #53697d;
+            font-size: 9px;
+            letter-spacing: 1px;
+        }
+
+        /* Movie-style target marker */
+
+        .target-marker {
+            width: 34px;
+            height: 34px;
+
+            border: 2px solid #ff3154;
+            border-radius: 50%;
+
+            background: rgba(255, 49, 84, 0.16);
+
+            box-shadow:
+                0 0 10px #ff3154,
+                0 0 25px rgba(255, 49, 84, 0.7);
+
+            position: relative;
+        }
+
+        .target-marker::before {
+            content: "";
+            position: absolute;
+
+            width: 2px;
+            height: 44px;
+
+            left: 14px;
+            top: -7px;
+
+            background: #ff3154;
+        }
+
+        .target-marker::after {
+            content: "";
+            position: absolute;
+
+            width: 44px;
+            height: 2px;
+
+            left: -7px;
+            top: 14px;
+
+            background: #ff3154;
+        }
+
+        .target-core {
+            position: absolute;
+
+            width: 8px;
+            height: 8px;
+
+            left: 11px;
+            top: 11px;
+
+            border-radius: 50%;
+            background: #ff3154;
+
+            box-shadow: 0 0 12px #ff3154;
+        }
+
+        .leaflet-control-zoom {
+            display: none;
+        }
+
+        .leaflet-control-attribution {
+            font-size: 8px;
+        }
+
+        @media (min-width: 700px) {
+            .topbar {
+                top: 22px;
+                left: 22px;
+                right: 22px;
+            }
+
+            .panel {
+                width: 430px;
+                left: 22px;
+                right: auto;
+                bottom: 22px;
+            }
+        }
+    </style>
+</head>
+
+<body>
+
+    <div id="map"></div>
+
+    <div class="topbar">
+
+        <div class="brand">
+            🛰️ GEO<span>TRACE</span>
+        </div>
+
+        <div class="status">
+            <span class="status-dot"></span>
+            SYSTEM ONLINE
+        </div>
+
+    </div>
+
+    <div class="panel">
+
+        <div class="target-header">
+
+            <div class="target">
+                🎯 TARGET DEMO-01
+            </div>
+
+            <div class="tracking">
+                ● TRACKING
+            </div>
+
+        </div>
+
+        <div class="grid">
+
+            <div class="card">
+                <div class="label">Latitude</div>
+                <div class="value blue" id="latitude">
+                    12.971600°
+                </div>
+            </div>
+
+            <div class="card">
+                <div class="label">Longitude</div>
+                <div class="value blue" id="longitude">
+                    77.594600°
+                </div>
+            </div>
+
+            <div class="card">
+                <div class="label">Speed</div>
+                <div class="value green" id="speed">
+                    0.0 km/h
+                </div>
+            </div>
+
+            <div class="card">
+                <div class="label">Direction</div>
+                <div class="value yellow" id="direction">
+                    N
+                </div>
+            </div>
+
+            <div class="card">
+                <div class="label">Distance</div>
+                <div class="value" id="distance">
+                    0.00 km
+                </div>
+            </div>
+
+            <div class="card">
+                <div class="label">Signal</div>
+                <div class="value green" id="signal">
+                    100%
+                </div>
+            </div>
+
+        </div>
+
+        <div class="footer">
+            GEOTRACE • DEMO MODE • SIMULATED LOCATION
+        </div>
+
+    </div>
+
+    <script
+        src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js">
+    </script>
+
+    <script>
+
+        /* Create map */
+
+        const map = L.map("map", {
+            zoomControl: false
+        }).setView(
+            [12.9716, 77.5946],
+            14
+        );
+
+        /* OpenStreetMap */
+
+        L.tileLayer(
+            "https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png",
+            {
+                attribution:
+                    "&copy; OpenStreetMap contributors"
+            }
+        ).addTo(map);
+
+        /* Starting target */
+
+        let targetLat = 12.9716;
+        let targetLng = 77.5946;
+
+        /* Custom target icon */
+
+        const targetIcon = L.divIcon({
+            className: "",
+            html: `
+                <div class="target-marker">
+                    <div class="target-core"></div>
+                </div>
+            `,
+            iconSize: [34, 34],
+            iconAnchor: [17, 17]
+        });
+
+        const targetMarker = L.marker(
+            [targetLat, targetLng],
+            {
+                icon: targetIcon
+            }
+        ).addTo(map);
+
+        /* Route */
+
+        const route = [];
+
+        const routeLine = L.polyline(
+            route,
+            {
+                weight: 3,
+                opacity: 0.8
+            }
+        ).addTo(map);
+
+        const directions = [
+            "N",
+            "NE",
+            "E",
+            "SE",
+            "S",
+            "SW",
+            "W",
+            "NW"
+        ];
+
+        /* Move simulated target */
+
+        function moveTarget() {
+
+            const oldLat = targetLat;
+            const oldLng = targetLng;
+
+            targetLat +=
+                (Math.random() - 0.5) * 0.0012;
+
+            targetLng +=
+                (Math.random() - 0.5) * 0.0012;
+
+            const position = [
+                targetLat,
+                targetLng
+            ];
+
+            targetMarker.setLatLng(position);
+
+            /* Add route point */
+
+            route.push(position);
+
+            if (route.length > 40) {
+                route.shift();
+            }
+
+            routeLine.setLatLngs(route);
+
+            /* Coordinates */
+
+            document.getElementById("latitude")
+                .textContent =
+                targetLat.toFixed(6) + "°";
+
+            document.getElementById("longitude")
+                .textContent =
+                targetLng.toFixed(6) + "°";
+
+            /* Speed */
+
+            const speed =
+                Math.random() * 35 + 5;
+
+            document.getElementById("speed")
+                .textContent =
+                speed.toFixed(1) + " km/h";
+
+            /* Direction */
+
+            const direction =
+                directions[
+                    Math.floor(
+                        Math.random() *
+                        directions.length
+                    )
+                ];
+
+            document.getElementById("direction")
+                .textContent =
+                direction;
+
+            /* Signal */
+
+            const signal =
+                Math.floor(
+                    Math.random() * 8
+                ) + 92;
+
+            document.getElementById("signal")
+                .textContent =
+                signal + "%";
+
+            /* Distance travelled between updates */
+
+            const distance =
+                map.distance(
+                    [oldLat, oldLng],
+                    position
+                );
+
+            document.getElementById("distance")
+                .textContent =
+                (distance / 1000).toFixed(2)
+                + " km";
+        }
+
+        /* Start demo movement */
+
+        setInterval(
+            moveTarget,
+            2000
+        );
+
+    </script>
+
+</body>
+</html>
