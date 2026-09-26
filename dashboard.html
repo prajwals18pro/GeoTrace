@@ -1,520 +1,569 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
-    <title>GeoTrace | Command Center</title>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
 
-    <link
-        rel="stylesheet"
-        href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
-    >
+<title>GeoTrace — Live Dashboard</title>
 
-    <style>
-        * {
-            box-sizing: border-box;
-            margin: 0;
-            padding: 0;
-        }
+<link
+rel="stylesheet"
+href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
+/>
 
-        body {
-            background: #02050a;
-            color: #ffffff;
-            font-family: Arial, sans-serif;
-            overflow: hidden;
-        }
+<style>
 
-        #map {
-            position: fixed;
-            inset: 0;
-            z-index: 1;
-        }
+*{
+    box-sizing:border-box;
+    margin:0;
+    padding:0;
+}
 
-        .topbar {
-            position: fixed;
-            top: 14px;
-            left: 14px;
-            right: 14px;
-            z-index: 1000;
+body{
+    background:#05070c;
+    color:white;
+    font-family:Arial,sans-serif;
+}
 
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
+.header{
+    padding:18px;
+    background:#0b1019;
+    border-bottom:1px solid #202838;
+}
 
-            padding: 14px 16px;
+.logo{
+    letter-spacing:5px;
+    font-size:13px;
+    color:#9badc5;
+}
 
-            background: rgba(2, 8, 15, 0.92);
-            border: 1px solid rgba(0, 200, 255, 0.4);
-            border-radius: 15px;
+.title{
+    font-size:25px;
+    margin-top:5px;
+}
 
-            backdrop-filter: blur(14px);
-        }
+.status{
+    margin-top:8px;
+    font-size:12px;
+    color:#8b98aa;
+}
 
-        .brand {
-            font-size: 18px;
-            font-weight: bold;
-            letter-spacing: 3px;
-        }
+.live-dot{
+    display:inline-block;
+    width:8px;
+    height:8px;
+    border-radius:50%;
+    background:#777;
+    margin-right:6px;
+}
 
-        .brand span {
-            color: #00c8ff;
-        }
+.live .live-dot{
+    background:#35e58a;
+    box-shadow:0 0 12px #35e58a;
+}
 
-        .status {
-            color: #00ff91;
-            font-size: 10px;
-            letter-spacing: 1px;
-        }
+.session{
+    margin-top:8px;
+    color:#687588;
+    font-size:11px;
+}
 
-        .status-dot {
-            display: inline-block;
-            width: 8px;
-            height: 8px;
-            margin-right: 5px;
-            border-radius: 50%;
-            background: #00ff91;
-            box-shadow: 0 0 12px #00ff91;
-            animation: pulse 1.5s infinite;
-        }
+#map{
+    width:100%;
+    height:55vh;
+    min-height:400px;
+}
 
-        @keyframes pulse {
-            0%, 100% {
-                opacity: 1;
-                transform: scale(1);
-            }
+.panel{
+    padding:15px;
+    background:#080c13;
+}
 
-            50% {
-                opacity: 0.4;
-                transform: scale(0.65);
-            }
-        }
+.panel-title{
+    color:#7e8b9d;
+    font-size:11px;
+    letter-spacing:2px;
+    margin-bottom:12px;
+}
 
-        .panel {
-            position: fixed;
-            left: 14px;
-            right: 14px;
-            bottom: 14px;
-            z-index: 1000;
+.grid{
+    display:grid;
+    grid-template-columns:repeat(2,1fr);
+    gap:10px;
+}
 
-            padding: 17px;
+.card{
+    background:#0d131d;
+    border:1px solid #1b2431;
+    border-radius:12px;
+    padding:14px;
+}
 
-            background: rgba(2, 8, 15, 0.94);
-            border: 1px solid rgba(0, 200, 255, 0.35);
-            border-radius: 19px;
+.card span{
+    display:block;
+    color:#6f7c8e;
+    font-size:10px;
+    margin-bottom:7px;
+}
 
-            backdrop-filter: blur(16px);
+.card strong{
+    font-size:15px;
+}
 
-            box-shadow:
-                0 0 35px rgba(0, 170, 255, 0.08);
-        }
+.footer{
+    text-align:center;
+    padding:18px;
+    color:#4e5969;
+    font-size:9px;
+    letter-spacing:1px;
+}
 
-        .target-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
+.target-icon{
+    width:26px;
+    height:26px;
+    border-radius:50%;
+    background:#ff304f;
+    border:4px solid rgba(255,48,79,.25);
+    box-shadow:0 0 20px rgba(255,48,79,.8);
+}
 
-            margin-bottom: 14px;
-        }
+.leaflet-popup-content-wrapper{
+    background:#0c111a;
+    color:white;
+}
 
-        .target {
-            font-size: 16px;
-            font-weight: bold;
-            letter-spacing: 1px;
-        }
+.leaflet-popup-tip{
+    background:#0c111a;
+}
 
-        .tracking {
-            color: #00ff91;
-            font-size: 10px;
-        }
+</style>
 
-        .grid {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 9px;
-        }
-
-        .card {
-            padding: 12px;
-
-            background: rgba(13, 24, 38, 0.88);
-            border: 1px solid rgba(70, 110, 140, 0.35);
-            border-radius: 12px;
-        }
-
-        .label {
-            color: #71869b;
-            font-size: 9px;
-            text-transform: uppercase;
-            letter-spacing: 1px;
-            margin-bottom: 5px;
-        }
-
-        .value {
-            font-size: 14px;
-            font-weight: bold;
-        }
-
-        .blue {
-            color: #00c8ff;
-        }
-
-        .green {
-            color: #00ff91;
-        }
-
-        .yellow {
-            color: #ffd43b;
-        }
-
-        .red {
-            color: #ff4264;
-        }
-
-        .footer {
-            margin-top: 12px;
-            text-align: center;
-            color: #53697d;
-            font-size: 9px;
-            letter-spacing: 1px;
-        }
-
-        /* Movie-style target marker */
-
-        .target-marker {
-            width: 34px;
-            height: 34px;
-
-            border: 2px solid #ff3154;
-            border-radius: 50%;
-
-            background: rgba(255, 49, 84, 0.16);
-
-            box-shadow:
-                0 0 10px #ff3154,
-                0 0 25px rgba(255, 49, 84, 0.7);
-
-            position: relative;
-        }
-
-        .target-marker::before {
-            content: "";
-            position: absolute;
-
-            width: 2px;
-            height: 44px;
-
-            left: 14px;
-            top: -7px;
-
-            background: #ff3154;
-        }
-
-        .target-marker::after {
-            content: "";
-            position: absolute;
-
-            width: 44px;
-            height: 2px;
-
-            left: -7px;
-            top: 14px;
-
-            background: #ff3154;
-        }
-
-        .target-core {
-            position: absolute;
-
-            width: 8px;
-            height: 8px;
-
-            left: 11px;
-            top: 11px;
-
-            border-radius: 50%;
-            background: #ff3154;
-
-            box-shadow: 0 0 12px #ff3154;
-        }
-
-        .leaflet-control-zoom {
-            display: none;
-        }
-
-        .leaflet-control-attribution {
-            font-size: 8px;
-        }
-
-        @media (min-width: 700px) {
-            .topbar {
-                top: 22px;
-                left: 22px;
-                right: 22px;
-            }
-
-            .panel {
-                width: 430px;
-                left: 22px;
-                right: auto;
-                bottom: 22px;
-            }
-        }
-    </style>
 </head>
 
 <body>
 
-    <div id="map"></div>
+<div class="header">
 
-    <div class="topbar">
+    <div class="logo">
+        GEOTRACE
+    </div>
 
-        <div class="brand">
-            🛰️ GEO<span>TRACE</span>
+    <div class="title">
+        Live Location Dashboard
+    </div>
+
+    <div
+        class="status"
+        id="connectionStatus"
+    >
+        <span class="live-dot"></span>
+        CONNECTING...
+    </div>
+
+    <div class="session">
+        SESSION: <span id="sessionText">GT-001</span>
+    </div>
+
+</div>
+
+
+<div id="map"></div>
+
+
+<div class="panel">
+
+    <div class="panel-title">
+        SHARED DEVICE TELEMETRY
+    </div>
+
+    <div class="grid">
+
+        <div class="card">
+            <span>LATITUDE</span>
+            <strong id="latitude">—</strong>
         </div>
 
-        <div class="status">
-            <span class="status-dot"></span>
-            SYSTEM ONLINE
+        <div class="card">
+            <span>LONGITUDE</span>
+            <strong id="longitude">—</strong>
+        </div>
+
+        <div class="card">
+            <span>ACCURACY</span>
+            <strong id="accuracy">—</strong>
+        </div>
+
+        <div class="card">
+            <span>SPEED</span>
+            <strong id="speed">—</strong>
+        </div>
+
+        <div class="card">
+            <span>DIRECTION</span>
+            <strong id="heading">—</strong>
+        </div>
+
+        <div class="card">
+            <span>LAST UPDATE</span>
+            <strong id="updated">—</strong>
         </div>
 
     </div>
 
-    <div class="panel">
+</div>
 
-        <div class="target-header">
 
-            <div class="target">
-                🎯 TARGET DEMO-01
-            </div>
+<div class="footer">
+    GEOTRACE • REAL-TIME CONSENT-BASED LOCATION
+</div>
 
-            <div class="tracking">
-                ● TRACKING
-            </div>
 
-        </div>
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 
-        <div class="grid">
 
-            <div class="card">
-                <div class="label">Latitude</div>
-                <div class="value blue" id="latitude">
-                    12.971600°
-                </div>
-            </div>
+<script type="module">
 
-            <div class="card">
-                <div class="label">Longitude</div>
-                <div class="value blue" id="longitude">
-                    77.594600°
-                </div>
-            </div>
+import { initializeApp }
+from "https://www.gstatic.com/firebasejs/12.19.0/firebase-app.js";
 
-            <div class="card">
-                <div class="label">Speed</div>
-                <div class="value green" id="speed">
-                    0.0 km/h
-                </div>
-            </div>
+import {
+    getAuth,
+    signInAnonymously
+}
+from "https://www.gstatic.com/firebasejs/12.19.0/firebase-auth.js";
 
-            <div class="card">
-                <div class="label">Direction</div>
-                <div class="value yellow" id="direction">
-                    N
-                </div>
-            </div>
+import {
+    getDatabase,
+    ref,
+    onValue
+}
+from "https://www.gstatic.com/firebasejs/12.19.0/firebase-database.js";
 
-            <div class="card">
-                <div class="label">Distance</div>
-                <div class="value" id="distance">
-                    0.00 km
-                </div>
-            </div>
 
-            <div class="card">
-                <div class="label">Signal</div>
-                <div class="value green" id="signal">
-                    100%
-                </div>
-            </div>
+// ==========================================
+// FIREBASE CONFIG
+// ==========================================
+//
+// IMPORTANT:
+// Use the EXACT SAME firebaseConfig
+// that is already working in share.html.
+//
+// Open share.html and copy its
+// complete const firebaseConfig = { ... }
+// block here.
+//
 
-        </div>
+// For Firebase JS SDK v7.20.0 and later, measurementId is optional
+const firebaseConfig = {
+  apiKey: "AIzaSyAE_D_Ti3XP_QUKe-1vlRtfPGhA4V5sh_4",
+  authDomain: "geotrace-7d9b4.firebaseapp.com",
+  databaseURL: "https://geotrace-7d9b4-default-rtdb.asia-southeast1.firebasedatabase.app",
+  projectId: "geotrace-7d9b4",
+  storageBucket: "geotrace-7d9b4.firebasestorage.app",
+  messagingSenderId: "228382891049",
+  appId: "1:228382891049:web:c4a978d058ea041d61d038",
+  measurementId: "G-F0ZE8RND9M"
+};
 
-        <div class="footer">
-            GEOTRACE • DEMO MODE • SIMULATED LOCATION
-        </div>
 
-    </div>
+// ==========================================
+// FIREBASE
+// ==========================================
 
-    <script
-        src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js">
-    </script>
+const app =
+    initializeApp(firebaseConfig);
 
-    <script>
+const auth =
+    getAuth(app);
 
-        /* Create map */
+const db =
+    getDatabase(app);
 
-        const map = L.map("map", {
-            zoomControl: false
-        }).setView(
-            [12.9716, 77.5946],
-            14
+
+// ==========================================
+// SESSION
+// ==========================================
+
+const sessionId = "GT-001";
+
+document.getElementById("sessionText")
+    .textContent = sessionId;
+
+
+// ==========================================
+// MAP
+// ==========================================
+
+const map = L.map("map").setView(
+    [20.5937,78.9629],
+    5
+);
+
+
+L.tileLayer(
+    "https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png",
+    {
+        maxZoom:19,
+        attribution:"© OpenStreetMap"
+    }
+).addTo(map);
+
+
+// ==========================================
+// LIVE TARGET MARKER
+// ==========================================
+
+let targetMarker = null;
+
+let firstLocation = true;
+
+let routePoints = [];
+
+let routeLine = L.polyline(
+    [],
+    {
+        color:"#ff304f",
+        weight:4,
+        opacity:.75
+    }
+).addTo(map);
+
+
+// ==========================================
+// UI
+// ==========================================
+
+const connectionStatus =
+    document.getElementById(
+        "connectionStatus"
+    );
+
+const latitude =
+    document.getElementById("latitude");
+
+const longitude =
+    document.getElementById("longitude");
+
+const accuracy =
+    document.getElementById("accuracy");
+
+const speed =
+    document.getElementById("speed");
+
+const heading =
+    document.getElementById("heading");
+
+const updated =
+    document.getElementById("updated");
+
+
+// ==========================================
+// CONNECT TO FIREBASE
+// ==========================================
+
+try{
+
+    await signInAnonymously(auth);
+
+    connectionStatus.classList.add("live");
+
+    connectionStatus.innerHTML =
+        '<span class="live-dot"></span> LIVE DATABASE CONNECTED';
+
+
+    const locationRef =
+        ref(
+            db,
+            "locations/" +
+            sessionId +
+            "/current"
         );
 
-        /* OpenStreetMap */
 
-        L.tileLayer(
-            "https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png",
-            {
-                attribution:
-                    "&copy; OpenStreetMap contributors"
-            }
-        ).addTo(map);
+    // ======================================
+    // REAL-TIME LOCATION LISTENER
+    // ======================================
 
-        /* Starting target */
+    onValue(
+        locationRef,
+        (snapshot) => {
 
-        let targetLat = 12.9716;
-        let targetLng = 77.5946;
+            const data =
+                snapshot.val();
 
-        /* Custom target icon */
 
-        const targetIcon = L.divIcon({
-            className: "",
-            html: `
-                <div class="target-marker">
-                    <div class="target-core"></div>
-                </div>
-            `,
-            iconSize: [34, 34],
-            iconAnchor: [17, 17]
-        });
+            if(!data){
 
-        const targetMarker = L.marker(
-            [targetLat, targetLng],
-            {
-                icon: targetIcon
-            }
-        ).addTo(map);
+                connectionStatus.innerHTML =
+                    '<span class="live-dot"></span> WAITING FOR SHARED DEVICE';
 
-        /* Route */
-
-        const route = [];
-
-        const routeLine = L.polyline(
-            route,
-            {
-                weight: 3,
-                opacity: 0.8
-            }
-        ).addTo(map);
-
-        const directions = [
-            "N",
-            "NE",
-            "E",
-            "SE",
-            "S",
-            "SW",
-            "W",
-            "NW"
-        ];
-
-        /* Move simulated target */
-
-        function moveTarget() {
-
-            const oldLat = targetLat;
-            const oldLng = targetLng;
-
-            targetLat +=
-                (Math.random() - 0.5) * 0.0012;
-
-            targetLng +=
-                (Math.random() - 0.5) * 0.0012;
-
-            const position = [
-                targetLat,
-                targetLng
-            ];
-
-            targetMarker.setLatLng(position);
-
-            /* Add route point */
-
-            route.push(position);
-
-            if (route.length > 40) {
-                route.shift();
+                return;
             }
 
-            routeLine.setLatLngs(route);
 
-            /* Coordinates */
+            const lat =
+                Number(data.latitude);
 
-            document.getElementById("latitude")
-                .textContent =
-                targetLat.toFixed(6) + "°";
+            const lng =
+                Number(data.longitude);
 
-            document.getElementById("longitude")
-                .textContent =
-                targetLng.toFixed(6) + "°";
 
-            /* Speed */
+            if(
+                !Number.isFinite(lat) ||
+                !Number.isFinite(lng)
+            ){
+                return;
+            }
 
-            const speed =
-                Math.random() * 35 + 5;
 
-            document.getElementById("speed")
-                .textContent =
-                speed.toFixed(1) + " km/h";
+            // ==================================
+            // UPDATE TELEMETRY
+            // ==================================
 
-            /* Direction */
+            latitude.textContent =
+                lat.toFixed(6);
 
-            const direction =
-                directions[
-                    Math.floor(
-                        Math.random() *
-                        directions.length
-                    )
-                ];
+            longitude.textContent =
+                lng.toFixed(6);
 
-            document.getElementById("direction")
-                .textContent =
-                direction;
 
-            /* Signal */
+            accuracy.textContent =
+                data.accuracy
+                ? Math.round(data.accuracy) + " m"
+                : "—";
 
-            const signal =
-                Math.floor(
-                    Math.random() * 8
-                ) + 92;
 
-            document.getElementById("signal")
-                .textContent =
-                signal + "%";
+            speed.textContent =
+                data.speed != null
+                ? (Number(data.speed) * 3.6).toFixed(1) + " km/h"
+                : "—";
 
-            /* Distance travelled between updates */
 
-            const distance =
-                map.distance(
-                    [oldLat, oldLng],
-                    position
+            heading.textContent =
+                data.heading != null
+                ? Math.round(data.heading) + "°"
+                : "—";
+
+
+            updated.textContent =
+                new Date(
+                    data.timestamp || Date.now()
+                ).toLocaleTimeString();
+
+
+            connectionStatus.classList.add("live");
+
+            connectionStatus.innerHTML =
+                '<span class="live-dot"></span> LIVE LOCATION RECEIVED';
+
+
+            // ==================================
+            // TARGET ICON
+            // ==================================
+
+            if(!targetMarker){
+
+                const icon =
+                    L.divIcon({
+
+                        className:"",
+                        html:
+                            '<div class="target-icon"></div>',
+
+                        iconSize:[26,26],
+
+                        iconAnchor:[13,13]
+
+                    });
+
+
+                targetMarker =
+                    L.marker(
+                        [lat,lng],
+                        {icon:icon}
+                    ).addTo(map);
+
+
+                targetMarker.bindPopup(
+                    "<b>GEOTRACE SHARED DEVICE</b><br>" +
+                    lat.toFixed(6) +
+                    ", " +
+                    lng.toFixed(6)
                 );
 
-            document.getElementById("distance")
-                .textContent =
-                (distance / 1000).toFixed(2)
-                + " km";
+            }else{
+
+                targetMarker.setLatLng(
+                    [lat,lng]
+                );
+
+            }
+
+
+            // ==================================
+            // ROUTE TRAIL
+            // ==================================
+
+            routePoints.push(
+                [lat,lng]
+            );
+
+
+            // Keep last 100 points
+
+            if(routePoints.length > 100){
+
+                routePoints.shift();
+
+            }
+
+
+            routeLine.setLatLngs(
+                routePoints
+            );
+
+
+            // ==================================
+            // CENTER MAP ON FIRST LOCATION
+            // ==================================
+
+            if(firstLocation){
+
+                map.setView(
+                    [lat,lng],
+                    17
+                );
+
+                firstLocation = false;
+
+            }
+
+        },
+
+        (error) => {
+
+            console.error(error);
+
+            connectionStatus.classList.remove("live");
+
+            connectionStatus.innerHTML =
+                '<span class="live-dot"></span> DATABASE CONNECTION ERROR';
+
         }
+    );
 
-        /* Start demo movement */
 
-        setInterval(
-            moveTarget,
-            2000
-        );
+}catch(error){
 
-    </script>
+    console.error(error);
+
+    connectionStatus.innerHTML =
+        '<span class="live-dot"></span> FIREBASE AUTHENTICATION ERROR';
+
+}
+
+</script>
 
 </body>
 </html>
