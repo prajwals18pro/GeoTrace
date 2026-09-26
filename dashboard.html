@@ -33,23 +33,23 @@ body{
 }
 
 .logo{
+    font-size:12px;
     letter-spacing:5px;
-    font-size:13px;
-    color:#9badc5;
+    color:#9aaac0;
 }
 
 .title{
     font-size:25px;
-    margin-top:5px;
+    margin-top:6px;
 }
 
 .status{
-    margin-top:8px;
-    font-size:12px;
+    margin-top:9px;
     color:#8b98aa;
+    font-size:12px;
 }
 
-.live-dot{
+.dot{
     display:inline-block;
     width:8px;
     height:8px;
@@ -58,57 +58,51 @@ body{
     margin-right:6px;
 }
 
-.live .live-dot{
+.live .dot{
     background:#35e58a;
     box-shadow:0 0 12px #35e58a;
 }
 
-.session{
-    margin-top:8px;
-    color:#687588;
-    font-size:11px;
-}
-
 #map{
     width:100%;
-    height:55vh;
+    height:58vh;
     min-height:400px;
 }
 
 .panel{
-    padding:15px;
     background:#080c13;
+    padding:15px;
 }
 
 .panel-title{
-    color:#7e8b9d;
-    font-size:11px;
+    color:#7f8c9e;
+    font-size:10px;
     letter-spacing:2px;
     margin-bottom:12px;
 }
 
 .grid{
     display:grid;
-    grid-template-columns:repeat(2,1fr);
+    grid-template-columns:1fr 1fr;
     gap:10px;
 }
 
 .card{
     background:#0d131d;
-    border:1px solid #1b2431;
+    border:1px solid #1c2634;
     border-radius:12px;
     padding:14px;
 }
 
 .card span{
     display:block;
-    color:#6f7c8e;
+    color:#6e7b8d;
     font-size:10px;
     margin-bottom:7px;
 }
 
 .card strong{
-    font-size:15px;
+    font-size:14px;
 }
 
 .footer{
@@ -119,22 +113,22 @@ body{
     letter-spacing:1px;
 }
 
-.target-icon{
-    width:26px;
-    height:26px;
+.target{
+    width:28px;
+    height:28px;
     border-radius:50%;
     background:#ff304f;
     border:4px solid rgba(255,48,79,.25);
-    box-shadow:0 0 20px rgba(255,48,79,.8);
+    box-shadow:0 0 20px rgba(255,48,79,.9);
 }
 
 .leaflet-popup-content-wrapper{
-    background:#0c111a;
+    background:#0d131d;
     color:white;
 }
 
 .leaflet-popup-tip{
-    background:#0c111a;
+    background:#0d131d;
 }
 
 </style>
@@ -143,6 +137,7 @@ body{
 
 <body>
 
+
 <div class="header">
 
     <div class="logo">
@@ -150,19 +145,15 @@ body{
     </div>
 
     <div class="title">
-        Live Location Dashboard
+        Live Location
     </div>
 
     <div
         class="status"
-        id="connectionStatus"
+        id="status"
     >
-        <span class="live-dot"></span>
+        <span class="dot"></span>
         CONNECTING...
-    </div>
-
-    <div class="session">
-        SESSION: <span id="sessionText">GT-001</span>
     </div>
 
 </div>
@@ -174,19 +165,19 @@ body{
 <div class="panel">
 
     <div class="panel-title">
-        SHARED DEVICE TELEMETRY
+        LIVE TELEMETRY
     </div>
 
     <div class="grid">
 
         <div class="card">
             <span>LATITUDE</span>
-            <strong id="latitude">—</strong>
+            <strong id="lat">—</strong>
         </div>
 
         <div class="card">
             <span>LONGITUDE</span>
-            <strong id="longitude">—</strong>
+            <strong id="lng">—</strong>
         </div>
 
         <div class="card">
@@ -219,19 +210,30 @@ body{
 </div>
 
 
-<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script
+src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js">
+</script>
 
 
 <script type="module">
 
-import { initializeApp }
+
+/* =========================================
+   FIREBASE IMPORTS
+========================================= */
+
+import {
+    initializeApp
+}
 from "https://www.gstatic.com/firebasejs/12.19.0/firebase-app.js";
+
 
 import {
     getAuth,
     signInAnonymously
 }
 from "https://www.gstatic.com/firebasejs/12.19.0/firebase-auth.js";
+
 
 import {
     getDatabase,
@@ -241,20 +243,21 @@ import {
 from "https://www.gstatic.com/firebasejs/12.19.0/firebase-database.js";
 
 
-// ==========================================
-// FIREBASE CONFIG
-// ==========================================
-//
-// IMPORTANT:
-// Use the EXACT SAME firebaseConfig
-// that is already working in share.html.
-//
-// Open share.html and copy its
-// complete const firebaseConfig = { ... }
-// block here.
-//
 
-// For Firebase JS SDK v7.20.0 and later, measurementId is optional
+/* =========================================
+   FIREBASE CONFIG
+========================================= */
+
+/*
+   IMPORTANT:
+
+   Use EXACTLY the SAME Firebase config
+   that is working in your share.html.
+
+   Copy the complete firebaseConfig block
+   from share.html and put it here.
+*/
+
 const firebaseConfig = {
   apiKey: "AIzaSyAE_D_Ti3XP_QUKe-1vlRtfPGhA4V5sh_4",
   authDomain: "geotrace-7d9b4.firebaseapp.com",
@@ -262,43 +265,72 @@ const firebaseConfig = {
   projectId: "geotrace-7d9b4",
   storageBucket: "geotrace-7d9b4.firebasestorage.app",
   messagingSenderId: "228382891049",
-  appId: "1:228382891049:web:c4a978d058ea041d61d038",
-  measurementId: "G-F0ZE8RND9M"
+  appId: "1:228382891049:web:c4a978d058ea041d61d038"
 };
 
+    
 
-// ==========================================
-// FIREBASE
-// ==========================================
+
+
+/* =========================================
+   FIREBASE
+========================================= */
 
 const app =
     initializeApp(firebaseConfig);
 
+
 const auth =
     getAuth(app);
 
-const db =
+
+const database =
     getDatabase(app);
 
 
-// ==========================================
-// SESSION
-// ==========================================
 
-const sessionId = "GT-001";
+/* =========================================
+   ELEMENTS
+========================================= */
 
-document.getElementById("sessionText")
-    .textContent = sessionId;
+const status =
+    document.getElementById("status");
 
 
-// ==========================================
-// MAP
-// ==========================================
+const latElement =
+    document.getElementById("lat");
 
-const map = L.map("map").setView(
-    [20.5937,78.9629],
-    5
-);
+
+const lngElement =
+    document.getElementById("lng");
+
+
+const accuracyElement =
+    document.getElementById("accuracy");
+
+
+const speedElement =
+    document.getElementById("speed");
+
+
+const headingElement =
+    document.getElementById("heading");
+
+
+const updatedElement =
+    document.getElementById("updated");
+
+
+
+/* =========================================
+   MAP
+========================================= */
+
+const map =
+    L.map("map").setView(
+        [20.5937,78.9629],
+        5
+    );
 
 
 L.tileLayer(
@@ -310,80 +342,76 @@ L.tileLayer(
 ).addTo(map);
 
 
-// ==========================================
-// LIVE TARGET MARKER
-// ==========================================
 
-let targetMarker = null;
+/* =========================================
+   MARKER
+========================================= */
+
+let marker = null;
 
 let firstLocation = true;
 
-let routePoints = [];
-
-let routeLine = L.polyline(
-    [],
-    {
-        color:"#ff304f",
-        weight:4,
-        opacity:.75
-    }
-).addTo(map);
+let route = [];
 
 
-// ==========================================
-// UI
-// ==========================================
-
-const connectionStatus =
-    document.getElementById(
-        "connectionStatus"
-    );
-
-const latitude =
-    document.getElementById("latitude");
-
-const longitude =
-    document.getElementById("longitude");
-
-const accuracy =
-    document.getElementById("accuracy");
-
-const speed =
-    document.getElementById("speed");
-
-const heading =
-    document.getElementById("heading");
-
-const updated =
-    document.getElementById("updated");
+const routeLine =
+    L.polyline(
+        [],
+        {
+            color:"#ff304f",
+            weight:4,
+            opacity:.7
+        }
+    ).addTo(map);
 
 
-// ==========================================
-// CONNECT TO FIREBASE
-// ==========================================
+
+/* =========================================
+   SESSION
+========================================= */
+
+/*
+   The sharer and dashboard use the same
+   background session.
+
+   The person sharing does NOT need to
+   enter anything.
+*/
+
+const sessionId =
+    "GT-001";
+
+
+
+/* =========================================
+   CONNECT TO FIREBASE
+========================================= */
 
 try{
 
     await signInAnonymously(auth);
 
-    connectionStatus.classList.add("live");
 
-    connectionStatus.innerHTML =
-        '<span class="live-dot"></span> LIVE DATABASE CONNECTED';
+    status.classList.add("live");
+
+    status.innerHTML =
+        '<span class="dot"></span> WAITING FOR LOCATION';
+
 
 
     const locationRef =
         ref(
-            db,
+            database,
             "locations/" +
             sessionId +
             "/current"
         );
 
 
-    // ======================================
-    // REAL-TIME LOCATION LISTENER
-    // ======================================
+
+    /* =====================================
+       REAL-TIME LISTENER
+    ===================================== */
 
     onValue(
         locationRef,
@@ -395,143 +423,182 @@ try{
 
             if(!data){
 
-                connectionStatus.innerHTML =
-                    '<span class="live-dot"></span> WAITING FOR SHARED DEVICE';
+                status.classList.remove("live");
+
+                status.innerHTML =
+                    '<span class="dot"></span> WAITING FOR SHARED LOCATION';
 
                 return;
             }
 
 
-            const lat =
+            const latitude =
                 Number(data.latitude);
 
-            const lng =
+
+            const longitude =
                 Number(data.longitude);
 
 
             if(
-                !Number.isFinite(lat) ||
-                !Number.isFinite(lng)
+                !Number.isFinite(latitude) ||
+                !Number.isFinite(longitude)
             ){
+
                 return;
+
             }
 
 
-            // ==================================
-            // UPDATE TELEMETRY
-            // ==================================
 
-            latitude.textContent =
-                lat.toFixed(6);
+            /* ===============================
+               TELEMETRY
+            =============================== */
 
-            longitude.textContent =
-                lng.toFixed(6);
+            latElement.textContent =
+                latitude.toFixed(6);
 
 
-            accuracy.textContent =
+            lngElement.textContent =
+                longitude.toFixed(6);
+
+
+            accuracyElement.textContent =
                 data.accuracy
-                ? Math.round(data.accuracy) + " m"
+                ? Math.round(
+                    Number(data.accuracy)
+                  ) + " m"
                 : "—";
 
 
-            speed.textContent =
-                data.speed != null
-                ? (Number(data.speed) * 3.6).toFixed(1) + " km/h"
+            speedElement.textContent =
+                data.speed !== null &&
+                data.speed !== undefined
+                ? (
+                    Number(data.speed) * 3.6
+                  ).toFixed(1) + " km/h"
                 : "—";
 
 
-            heading.textContent =
-                data.heading != null
-                ? Math.round(data.heading) + "°"
+            headingElement.textContent =
+                data.heading !== null &&
+                data.heading !== undefined
+                ? Math.round(
+                    Number(data.heading)
+                  ) + "°"
                 : "—";
 
 
-            updated.textContent =
+            updatedElement.textContent =
                 new Date(
-                    data.timestamp || Date.now()
+                    data.timestamp ||
+                    Date.now()
                 ).toLocaleTimeString();
 
 
-            connectionStatus.classList.add("live");
 
-            connectionStatus.innerHTML =
-                '<span class="live-dot"></span> LIVE LOCATION RECEIVED';
+            /* ===============================
+               STATUS
+            =============================== */
+
+            status.classList.add("live");
+
+            status.innerHTML =
+                '<span class="dot"></span> LIVE LOCATION RECEIVED';
 
 
-            // ==================================
-            // TARGET ICON
-            // ==================================
 
-            if(!targetMarker){
+            /* ===============================
+               MARKER
+            =============================== */
+
+            if(!marker){
 
                 const icon =
                     L.divIcon({
 
                         className:"",
+
                         html:
-                            '<div class="target-icon"></div>',
+                            '<div class="target"></div>',
 
-                        iconSize:[26,26],
+                        iconSize:
+                            [28,28],
 
-                        iconAnchor:[13,13]
+                        iconAnchor:
+                            [14,14]
 
                     });
 
 
-                targetMarker =
+                marker =
                     L.marker(
-                        [lat,lng],
-                        {icon:icon}
+                        [
+                            latitude,
+                            longitude
+                        ],
+                        {
+                            icon:icon
+                        }
                     ).addTo(map);
 
 
-                targetMarker.bindPopup(
-                    "<b>GEOTRACE SHARED DEVICE</b><br>" +
-                    lat.toFixed(6) +
+                marker.bindPopup(
+                    "<b>GEOTRACE</b><br>" +
+                    "Shared device<br><br>" +
+                    latitude.toFixed(6) +
                     ", " +
-                    lng.toFixed(6)
+                    longitude.toFixed(6)
                 );
 
-            }else{
+            }
+            else{
 
-                targetMarker.setLatLng(
-                    [lat,lng]
+                marker.setLatLng(
+                    [
+                        latitude,
+                        longitude
+                    ]
                 );
 
             }
 
 
-            // ==================================
-            // ROUTE TRAIL
-            // ==================================
 
-            routePoints.push(
-                [lat,lng]
+            /* ===============================
+               ROUTE
+            =============================== */
+
+            route.push(
+                [
+                    latitude,
+                    longitude
+                ]
             );
 
 
-            // Keep last 100 points
+            if(route.length > 100){
 
-            if(routePoints.length > 100){
-
-                routePoints.shift();
+                route.shift();
 
             }
 
 
-            routeLine.setLatLngs(
-                routePoints
-            );
+            routeLine.setLatLngs(route);
 
 
-            // ==================================
-            // CENTER MAP ON FIRST LOCATION
-            // ==================================
+
+            /* ===============================
+               FIRST LOCATION
+            =============================== */
 
             if(firstLocation){
 
                 map.setView(
-                    [lat,lng],
+                    [
+                        latitude,
+                        longitude
+                    ],
                     17
                 );
 
@@ -541,25 +608,27 @@ try{
 
         },
 
+
         (error) => {
 
             console.error(error);
 
-            connectionStatus.classList.remove("live");
+            status.classList.remove("live");
 
-            connectionStatus.innerHTML =
-                '<span class="live-dot"></span> DATABASE CONNECTION ERROR';
+            status.innerHTML =
+                '<span class="dot"></span> DATABASE ERROR';
 
         }
     );
 
 
-}catch(error){
+}
+catch(error){
 
     console.error(error);
 
-    connectionStatus.innerHTML =
-        '<span class="live-dot"></span> FIREBASE AUTHENTICATION ERROR';
+    status.innerHTML =
+        '<span class="dot"></span> FIREBASE CONNECTION ERROR';
 
 }
 
