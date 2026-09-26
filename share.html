@@ -1,0 +1,586 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>GeoTrace — Share Location</title>
+
+<style>
+*{
+    box-sizing:border-box;
+    margin:0;
+    padding:0;
+}
+
+body{
+    min-height:100vh;
+    font-family:Arial, sans-serif;
+    background:
+        radial-gradient(circle at top,#18243a,#05070c 60%);
+    color:white;
+    display:flex;
+    justify-content:center;
+    align-items:center;
+    padding:20px;
+}
+
+.container{
+    width:100%;
+    max-width:480px;
+    background:rgba(15,20,32,.94);
+    border:1px solid rgba(255,255,255,.12);
+    border-radius:24px;
+    padding:25px;
+    box-shadow:0 20px 60px rgba(0,0,0,.5);
+}
+
+.logo{
+    font-size:13px;
+    letter-spacing:4px;
+    color:#8fa9c9;
+    margin-bottom:10px;
+}
+
+h1{
+    font-size:30px;
+    margin-bottom:8px;
+}
+
+.subtitle{
+    color:#9ba7b8;
+    line-height:1.5;
+    font-size:14px;
+    margin-bottom:22px;
+}
+
+.notice{
+    background:rgba(255,190,70,.08);
+    border:1px solid rgba(255,190,70,.25);
+    padding:13px;
+    border-radius:12px;
+    font-size:12px;
+    color:#d9c89d;
+    margin-bottom:18px;
+    line-height:1.5;
+}
+
+label{
+    display:block;
+    color:#8f9bad;
+    font-size:12px;
+    margin-bottom:7px;
+}
+
+input{
+    width:100%;
+    padding:14px;
+    border-radius:10px;
+    border:1px solid #303a4b;
+    background:#0b1019;
+    color:white;
+    outline:none;
+    margin-bottom:15px;
+}
+
+input:focus{
+    border-color:#6f8fb8;
+}
+
+button{
+    width:100%;
+    padding:15px;
+    border:0;
+    border-radius:11px;
+    cursor:pointer;
+    font-weight:bold;
+    font-size:14px;
+    margin-top:5px;
+}
+
+.start{
+    background:#e8edf5;
+    color:#10141c;
+}
+
+.stop{
+    background:#321820;
+    color:#ff9ca9;
+    border:1px solid #65313c;
+    display:none;
+}
+
+.status{
+    display:flex;
+    align-items:center;
+    gap:9px;
+    margin:20px 0;
+    padding:12px;
+    background:#0b1018;
+    border-radius:12px;
+    font-size:13px;
+    color:#aeb8c7;
+}
+
+.dot{
+    width:9px;
+    height:9px;
+    border-radius:50%;
+    background:#777;
+}
+
+.live .dot{
+    background:#35e58a;
+    box-shadow:0 0 12px #35e58a;
+}
+
+.grid{
+    display:grid;
+    grid-template-columns:1fr 1fr;
+    gap:10px;
+}
+
+.card{
+    background:#0b1018;
+    border:1px solid rgba(255,255,255,.07);
+    border-radius:12px;
+    padding:13px;
+}
+
+.card span{
+    display:block;
+    font-size:11px;
+    color:#7e8999;
+    margin-bottom:6px;
+}
+
+.card strong{
+    font-size:14px;
+    word-break:break-all;
+}
+
+.footer{
+    text-align:center;
+    margin-top:22px;
+    color:#596577;
+    font-size:10px;
+    letter-spacing:1px;
+}
+</style>
+</head>
+
+<body>
+
+<div class="container">
+
+    <div class="logo">GEOTRACE</div>
+
+    <h1>Share My Location</h1>
+
+    <p class="subtitle">
+        Your device location will be shared with the GeoTrace dashboard
+        while sharing is active.
+    </p>
+
+    <div class="notice">
+        📍 Location sharing requires your browser's permission.
+        You can stop sharing at any time.
+    </div>
+
+    <label>SESSION ID</label>
+    <input id="sessionInput" value="GT-001" maxlength="40">
+
+    <button class="start" id="startBtn">
+        START SHARING MY LOCATION
+    </button>
+
+    <button class="stop" id="stopBtn">
+        STOP SHARING
+    </button>
+
+    <div class="status" id="status">
+        <div class="dot"></div>
+        <span id="statusText">Location sharing is OFF</span>
+    </div>
+
+    <div class="grid">
+
+        <div class="card">
+            <span>LATITUDE</span>
+            <strong id="lat">—</strong>
+        </div>
+
+        <div class="card">
+            <span>LONGITUDE</span>
+            <strong id="lng">—</strong>
+        </div>
+
+        <div class="card">
+            <span>ACCURACY</span>
+            <strong id="accuracy">—</strong>
+        </div>
+
+        <div class="card">
+            <span>SPEED</span>
+            <strong id="speed">—</strong>
+        </div>
+
+        <div class="card">
+            <span>DIRECTION</span>
+            <strong id="heading">—</strong>
+        </div>
+
+        <div class="card">
+            <span>LAST UPDATE</span>
+            <strong id="updated">—</strong>
+        </div>
+
+    </div>
+
+    <div class="footer">
+        GEOTRACE • CONSENT-BASED LOCATION SHARING
+    </div>
+
+</div>
+
+
+<script type="module">
+
+import { initializeApp }
+from "https://www.gstatic.com/firebasejs/12.19.0/firebase-app.js";
+
+import {
+    getAuth,
+    signInAnonymously
+}
+from "https://www.gstatic.com/firebasejs/12.19.0/firebase-auth.js";
+
+import {
+    getDatabase,
+    ref,
+    set,
+    remove
+}
+from "https://www.gstatic.com/firebasejs/12.19.0/firebase-database.js";
+
+
+// ==========================================
+// FIREBASE CONFIGURATION
+// ==========================================
+// Open Firebase Console → Project settings →
+// Your apps → GeoTrace Web
+//
+// Copy your firebaseConfig values here.
+
+const firebaseConfig = {
+
+    apiKey: "PASTE_YOUR_API_KEY",
+
+    authDomain:
+        "geotrace-7d9b4.firebaseapp.com",
+
+    databaseURL:
+        "https://geotrace-7d9b4-default-rtdb.asia-southeast1.firebasedatabase.app",
+
+    projectId:
+        "geotrace-7d9b4",
+
+    storageBucket:
+        "geotrace-7d9b4.firebasestorage.app",
+
+    messagingSenderId:
+        "228382891049",
+
+    appId: "PASTE_YOUR_APP_ID"
+};
+
+
+// Firebase initialization
+
+const app = initializeApp(firebaseConfig);
+
+const auth = getAuth(app);
+
+const db = getDatabase(app);
+
+
+// ==========================================
+// PAGE ELEMENTS
+// ==========================================
+
+const startBtn =
+    document.getElementById("startBtn");
+
+const stopBtn =
+    document.getElementById("stopBtn");
+
+const sessionInput =
+    document.getElementById("sessionInput");
+
+const statusBox =
+    document.getElementById("status");
+
+const statusText =
+    document.getElementById("statusText");
+
+const latElement =
+    document.getElementById("lat");
+
+const lngElement =
+    document.getElementById("lng");
+
+const accuracyElement =
+    document.getElementById("accuracy");
+
+const speedElement =
+    document.getElementById("speed");
+
+const headingElement =
+    document.getElementById("heading");
+
+const updatedElement =
+    document.getElementById("updated");
+
+
+// ==========================================
+// VARIABLES
+// ==========================================
+
+let watchId = null;
+
+let activeSession = null;
+
+
+// ==========================================
+// START LOCATION SHARING
+// ==========================================
+
+startBtn.addEventListener("click", async () => {
+
+    const sessionId =
+        sessionInput.value.trim();
+
+    if (!sessionId) {
+
+        alert("Please enter a Session ID.");
+
+        return;
+    }
+
+
+    if (!navigator.geolocation) {
+
+        alert(
+            "Geolocation is not supported by this browser."
+        );
+
+        return;
+    }
+
+
+    try {
+
+        statusText.textContent =
+            "Connecting to GeoTrace...";
+
+
+        // Anonymous Firebase authentication
+
+        await signInAnonymously(auth);
+
+
+        activeSession = sessionId;
+
+
+        // Ask browser for GPS permission
+
+        watchId =
+            navigator.geolocation.watchPosition(
+
+                async (position) => {
+
+                    const coords =
+                        position.coords;
+
+
+                    const locationData = {
+
+                        latitude:
+                            coords.latitude,
+
+                        longitude:
+                            coords.longitude,
+
+                        accuracy:
+                            coords.accuracy || null,
+
+                        speed:
+                            coords.speed || null,
+
+                        heading:
+                            coords.heading || null,
+
+                        timestamp:
+                            Date.now()
+                    };
+
+
+                    // Write current location to Firebase
+
+                    const locationRef =
+                        ref(
+                            db,
+                            "locations/" +
+                            activeSession +
+                            "/current"
+                        );
+
+
+                    await set(
+                        locationRef,
+                        locationData
+                    );
+
+
+                    // Update screen
+
+                    latElement.textContent =
+                        coords.latitude.toFixed(6);
+
+                    lngElement.textContent =
+                        coords.longitude.toFixed(6);
+
+
+                    accuracyElement.textContent =
+                        coords.accuracy
+                        ? Math.round(coords.accuracy) + " m"
+                        : "—";
+
+
+                    speedElement.textContent =
+                        coords.speed != null
+                        ? (coords.speed * 3.6).toFixed(1) + " km/h"
+                        : "—";
+
+
+                    headingElement.textContent =
+                        coords.heading != null
+                        ? Math.round(coords.heading) + "°"
+                        : "—";
+
+
+                    updatedElement.textContent =
+                        new Date().toLocaleTimeString();
+
+
+                    statusBox.classList.add("live");
+
+                    statusText.textContent =
+                        "LOCATION SHARING ACTIVE";
+
+                },
+
+
+                (error) => {
+
+                    console.error(error);
+
+                    statusBox.classList.remove("live");
+
+                    statusText.textContent =
+                        "Location permission/error";
+
+                    alert(
+                        "Unable to access your location. Please allow location permission in the browser."
+                    );
+
+                },
+
+                {
+                    enableHighAccuracy: true,
+                    maximumAge: 2000,
+                    timeout: 10000
+                }
+            );
+
+
+        startBtn.style.display = "none";
+
+        stopBtn.style.display = "block";
+
+        sessionInput.disabled = true;
+
+
+    } catch (error) {
+
+        console.error(error);
+
+        statusText.textContent =
+            "Firebase connection failed";
+
+        alert(
+            "Firebase connection failed. Check your Firebase configuration."
+        );
+    }
+
+});
+
+
+// ==========================================
+// STOP LOCATION SHARING
+// ==========================================
+
+stopBtn.addEventListener("click", async () => {
+
+    if (watchId !== null) {
+
+        navigator.geolocation.clearWatch(
+            watchId
+        );
+
+        watchId = null;
+    }
+
+
+    if (activeSession) {
+
+        try {
+
+            const locationRef =
+                ref(
+                    db,
+                    "locations/" +
+                    activeSession +
+                    "/current"
+                );
+
+            await remove(locationRef);
+
+        } catch (error) {
+
+            console.error(error);
+
+        }
+    }
+
+
+    activeSession = null;
+
+
+    statusBox.classList.remove("live");
+
+    statusText.textContent =
+        "Location sharing is OFF";
+
+
+    startBtn.style.display = "block";
+
+    stopBtn.style.display = "none";
+
+    sessionInput.disabled = false;
+
+});
+
+</script>
+
+</body>
+</html>
